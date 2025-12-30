@@ -11,4 +11,4 @@ COPY . /app
 RUN pip install -r requirements.txt
 
 # Define the entry point for the container
-CMD ["python", "app.py"]
+CMD ["python", "app.py", "runserver", "0.0.0.0:5000"]
