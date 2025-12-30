@@ -1,0 +1,124 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Profit Distribution Pro - Postgres</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --main-bg: #f8f9fa; --card-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        body { background-color: var(--main-bg); font-family: 'Segoe UI', sans-serif; }
+        .header-section { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .card { border-radius: 15px; border: none; box-shadow: var(--card-shadow); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-3px); }
+        .stat-label { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #6c757d; }
+        .stat-value { font-size: 1.4rem; font-weight: 800; color: #1e3c72; }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show mb-4 shadow" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="header-section d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="m-0 fw-bold">Postgres Profit Distribution</h2>
+                <p class="m-0 opacity-75">Partner: {{ current_user.username }}</p>
+            </div>
+            <a href="/logout" class="btn btn-outline-light btn-sm fw-bold">Logout</a>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="card p-3 mb-4">
+                    <h6 class="fw-bold text-primary mb-3">1. Add Capital</h6>
+                    <form action="/add_fund" method="POST">
+                        <select name="source" class="form-select mb-2">
+                            <option value="Axis">Axis</option>
+                            <option value="Aditya">Aditya</option>
+                            <option value="Cash">Cash</option>
+                        </select>
+                        <input type="number" step="0.01" name="amount" class="form-control mb-3" placeholder="Amount" required>
+                        <button type="submit" class="btn btn-primary w-100 fw-bold">Deposit</button>
+                    </form>
+                </div>
+
+                <div class="card p-3 mb-4">
+                    <h6 class="fw-bold text-success mb-3">2. Transfer Engine</h6>
+                    <form action="/transfer" method="POST">
+                        <select name="from_acc" class="form-select mb-2">
+                            <optgroup label="Sources"><option value="Axis">Axis</option><option value="Aditya">Aditya</option><option value="Cash">Cash</option></optgroup>
+                            <optgroup label="Intermediaries"><option value="Arun">Arun</option><option value="Gulesh">Gulesh</option></optgroup>
+                        </select>
+                        <select name="to_acc" class="form-select mb-2">
+                            <optgroup label="Intermediaries"><option value="Arun">Arun</option><option value="Gulesh">Gulesh</option></optgroup>
+                            <optgroup label="Partners"><option value="Amrendra">Amrendra</option><option value="Ranveer">Ranveer</option><option value="Ram">Ram</option><option value="Sandeep">Sandeep</option></optgroup>
+                        </select>
+                        <input type="number" step="0.01" name="amount" class="form-control mb-3" placeholder="Amount" required>
+                        <button type="submit" class="btn btn-success w-100 fw-bold">Transfer</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="row g-3 mb-4">
+                    {% for acc in accounts if acc.name in ['Axis', 'Aditya', 'Cash', 'Arun', 'Gulesh'] %}
+                    <div class="col-md-4 col-6">
+                        <div class="card p-3 h-100 text-center shadow-sm">
+                            <div class="stat-label">{{ acc.name }}</div>
+                            <div class="stat-value text-primary">${{ "{:,.0f}".format(acc.balance) }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3">Partner Profit Withdrawal</h6>
+                        <div style="height: 250px;"><canvas id="partnerChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light"><tr><th>Flow</th><th class="text-end">Amount</th></tr></thead>
+                            <tbody>
+                                {% for tx in transactions %}
+                                <tr>
+                                    <td>{{ tx.source }} &rarr; {{ tx.destination }} <br><small class="text-muted">{{ tx.timestamp.strftime('%H:%M') }}</small></td>
+                                    <td class="text-end fw-bold text-primary">${{ "{:,.2f}".format(tx.amount) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        new Chart(document.getElementById('partnerChart'), {
+            type: 'bar',
+            data: {
+                labels: {{ p_labels|tojson }},
+                datasets: [{
+                    data: {{ p_values|tojson }},
+                    backgroundColor: ['#1e3c72', '#2a5298', '#2af598', '#ffb800'],
+                    borderRadius: 8
+                }]
+            },
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    </script>
+</body>
+</html>
